@@ -1,0 +1,38 @@
+pipeline {
+    agent any
+    
+    stages{
+        stage("Clone Code"){
+            steps{
+                echo "Cloning the Code"
+                git url:"https://github.com/RohitNegi27/django-notes-app.git", branch:"main"
+                
+            }
+        }
+        stage("Build"){
+            steps{
+                echo "Buidling the Docker Image"
+                sh "docker build -t my-note-app ."
+            }
+        }
+        stage("Push to Docker HUB"){
+            steps{
+                echo "Pushing the Docker Image to the Docker Hub"
+                withCredentials([usernamePassword(credentialsId:"dockerHub",passwordVariable:"dockerHubPass",usernameVariable:"dockerHubUser")])
+                {
+                sh "docker tag my-note-app ${env.dockerHubUser}/my-note-app:latest"
+                sh "docker login -u ${env.dockerHubUser} -p ${env.dockerHubPass}"
+                sh "docker push ${env.dockerHubUser}/my-note-app:latest"
+            }
+                
+            }
+        }
+        stage("Deploy to AWS") {
+            steps{
+                echo "Deploy the Image as a container in AWS"
+                sh "docker-compose down && docker-compose up -d"
+                
+            }
+        }
+    }
+}
